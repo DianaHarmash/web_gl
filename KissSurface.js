@@ -3,6 +3,8 @@ class SurfaceModel {
         this.name = name;
         this.uSegments = uSegments;
         this.vSegments = vSegments;
+        this.uSegmentsLines = [];
+        this.vSegmentsLines = [];
         this.vertexList = [];
     }
 
@@ -36,6 +38,8 @@ class SurfaceModel {
 
     clearVertexList() {
         this.vertexList = [];
+        this.uSegmentsLines = [];
+        this.vSegmentsLines = [];
     }
 }
 
@@ -59,29 +63,35 @@ class KissSurface extends SurfaceModel {
         let uMax = 2 * Math.PI; 
 
         for (let i = 0; i <= this.uSegments; i++) {
-            let u = (i / this.uSegments) * uMax; 
+            var uLine = [];
+            let u = (i / this.uSegments) * uMax;
             for (let j = 0; j <= this.vSegments; j++) {
-                let z = this.zMin + (j / this.vSegments) * (this.zMax - this.zMin); 
+                let z = this.zMin + (j / this.vSegments) * (this.zMax - this.zMin);
 
                 let vertexes = this.surfaceEquation(z, u);
 
                 this.vertexList.push(vertexes.x, vertexes.y, z);
+                uLine.push([vertexes.x, vertexes.y, z]);
             }
+            this.uSegmentsLines.push(uLine);
         }
 
         for (let j = 0; j <= this.vSegments; j++) {
-            let z = this.zMin + (j / this.vSegments) * (this.zMax - this.zMin); 
+            var vLine = [];
+            let z = this.zMin + (j / this.vSegments) * (this.zMax - this.zMin);
             for (let i = 0; i <= this.uSegments; i++) {
-                let u = (i / this.uSegments) * uMax; 
+                let u = (i / this.uSegments) * uMax;
                 let vertexes = this.surfaceEquation(z, u);
 
                 this.vertexList.push(vertexes.x, vertexes.y, z);
+                vLine.push([vertexes.x, vertexes.y, z]);
             }
+            this.vSegmentsLines.push(vLine);
         }
     }
 
     surfaceEquation(z, u) {
-        let factor = z * z * Math.sqrt(1 - z); 
+        let factor = z * z * Math.sqrt(1 - z);
         let x = factor * Math.cos(u);
         let y = factor * Math.sin(u);
         return { x, y };
@@ -94,8 +104,6 @@ class KissSurface extends SurfaceModel {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-        this.count = vertices.length / 3;
     }
 
     draw(gl, shProgram) {
@@ -105,7 +113,21 @@ class KissSurface extends SurfaceModel {
 
         gl.enableVertexAttribArray(shProgram.vertexAttrib);
 
-        gl.drawArrays(gl.LINE_STRIP, 0, this.count);
+
+        const uLineVerticesCount = this.vSegments + 1;
+        const vLineVerticesCount = this.uSegments + 1;
+        const vLinesOffset = this.uSegmentsLines.length * uLineVerticesCount;
+
+        for (let i = 0; i < this.uSegmentsLines.length; i++) {
+            const offset = i * uLineVerticesCount;
+            gl.drawArrays(gl.LINE_STRIP, offset, uLineVerticesCount);
+        }
+
+        for (let i = 0; i < this.vSegmentsLines.length; i++) {
+            const offset = i * vLineVerticesCount;
+            gl.drawArrays(gl.LINE_STRIP, vLinesOffset + offset, vLineVerticesCount);
+        }
+
     }
 
 
