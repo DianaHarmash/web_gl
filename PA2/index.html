@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+    <title>PA#1</title>
+    <style>
+        body {
+            background-color: #EEEEEE;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        button {
+            background-color: rgba(255, 255, 255, 0.7);
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        button:hover {
+            background-color: rgba(255, 255, 255, 1);
+        }
+        .inputContainer {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            height: 30px;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Kiss Surface</h2>
+    <div class="inputContainer">
+        <p>U Segments:</p>
+        <input type="number" name="U Segments" id="U Segments" min ="1" max="360" step="1" value="128">
+    </div>
+    <div class="inputContainer">
+        <p>Z Segments:</p>
+        <input type="number" name="Z Segments" id="Z Segments" min ="1" max="360" step="1" value="128">
+    </div>
+    <div id="canvas-holder" style="position: relative">
+        <canvas width="700" height="700" id="webglcanvas"></canvas>
+    </div>
+
+    <script defer type="module" src="./main.mjs"></script>
+    <script src="./shader.gpu"></script>
+    <script src="./Utils/m4.js"></script>
+</body>
+
+</html>
