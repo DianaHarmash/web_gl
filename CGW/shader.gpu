@@ -1,0 +1,95 @@
+
+
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 inVertex;
+attribute vec2 inUV;
+attribute vec3 inNormal;
+attribute vec3 inTangent;
+
+uniform mat4 projectionMatrix;
+uniform mat4 modelMatrix;
+uniform mat4 normalMatrix;
+
+uniform vec3 lightLocation;
+
+varying vec3 frag_color;
+
+uniform sampler2D diffuseTexture;
+uniform sampler2D normalTexture;
+uniform sampler2D specularTexture;
+
+uniform vec2 point;
+uniform float angle;
+
+vec2 rotateUV() {
+    vec2 uv = inUV - point;
+    float cosTheta = cos(angle);
+    float sinTheta = sin(angle);
+
+    uv = vec2(
+        uv.x * cosTheta - uv.y * sinTheta,
+        uv.x * sinTheta + uv.y * cosTheta
+    );
+
+    return uv + point;
+}
+
+vec3 getNormalFromTexture(vec2 uv)
+{
+    vec3 normal = normalize(mat3(normalMatrix) * inNormal);
+    vec3 tangent = normalize(mat3(normalMatrix) * inTangent);
+
+    normal = normalize(normal - dot(tangent, normal) * tangent);
+
+    vec3 bitangent = cross(tangent, normal);
+    vec3 normalMap = texture2D(normalTexture, uv).rgb;
+    normalMap = 2.0 * normalMap - vec3(1.0, 1.0, 1.0);
+
+    mat3 TBN = mat3(tangent, bitangent, normal);
+    return normalize(mat3(normalMatrix) * TBN * normalMap);
+}
+
+void main() {
+    const float ambientFactor = 0.2;
+    vec2 uv = rotateUV();
+
+    vec3 color = texture2D(diffuseTexture, uv).rgb;
+    float specularFactor = pow(texture2D(specularTexture, uv).r, 0.5);
+
+    vec4 vertex = modelMatrix * vec4(inVertex, 1.0);
+    vertex /= vertex.w;
+
+    vec3 N = getNormalFromTexture(uv);
+    vec3 L = normalize(vertex.xyz - lightLocation);
+    vec3 V = normalize(-vertex.xyz);
+
+    if(dot(N, V) < 0.0)
+    {
+        N = -N;
+    }
+
+    vec3 ambient = color * ambientFactor;
+    vec3 diffuse = vec3(max(dot(N, -L), 0.0)) * color * (1.0 - ambientFactor);
+
+    vec3 R = reflect(L, N);
+    vec3 specular = vec3(specularFactor) * pow(max(dot(V, R), 0.0), 32.0);
+
+    frag_color = ambient + diffuse + specular;
+    gl_Position = projectionMatrix * vertex;
+}`;
+
+
+// Fragment shader
+const fragmentShaderSource = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+varying vec3 frag_color;
+
+void main() {
+    gl_FragColor = vec4(frag_color.rgb, 1.0);
+}`;
