@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -9,10 +8,8 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// Enable CORS for all routes
 app.use(cors());
 
-// Parse JSON bodies
 app.use(bodyParser.json());
 
 // Store the latest sensor data
@@ -41,16 +38,13 @@ app.post('/sensor-data', (req, res) => {
 wss.on('connection', (ws) => {
   console.log('Client connected');
   
-  // Send the current sensor data to the newly connected client
   ws.send(JSON.stringify(sensorData));
   
-  // Handle client disconnection
   ws.on('close', () => {
     console.log('Client disconnected');
   });
 });
 
-// Broadcast sensor data to all connected clients every 20ms
 setInterval(() => {
   if (wss.clients.size > 0) {
     const message = JSON.stringify(sensorData);
@@ -62,7 +56,6 @@ setInterval(() => {
   }
 }, 20);
 
-// Start the server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

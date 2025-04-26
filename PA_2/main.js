@@ -20,7 +20,7 @@ let video;
 
 // WebSocket connection for sensor data
 let ws;
-let isSensorEnabled = false;  // Flag to enable/disable sensor-based rotation
+let isSensorEnabled = false;  
 let sensorOrientation = {
     alpha: 0,  // z-axis rotation
     beta: 0,   // x-axis rotation
@@ -29,17 +29,14 @@ let sensorOrientation = {
 
 // Initialize WebSocket connection to sensor bridge server
 function initWebSocket() {
-    // const wsUrl = `ws://${phoneIP}:${phonePort}/sensor/connect?type=orientation`;
-     // Get the IP address of your smartphone from the Sensor Server app
-     const phoneIP = "192.168.50.23"; // Replace with your smartphone's IP address
-     const phonePort = 8080; // Use the WebSocket port from your Sensor Server app (shown as 8080 in screenshot)
-     
-     // Use the correct URL format as required by SensorServer
-     const wsUrl = `ws://${phoneIP}:${phonePort}/sensor/connect?type=orientation`;
+     const phoneIP = "192.168.50.23"; 
+     const phonePort = 8080; 
+
+     const wsUrl = `ws://${phoneIP}:${phonePort}/sensor/connect?type=android.sensor.orientation`;
      console.log(`Connecting to WebSocket server at ${wsUrl}`);
     
     ws = new WebSocket(wsUrl);
-    
+
     ws.onopen = function() {
         console.log('Successfully connected to WebSocket server at ' + wsUrl);
         document.getElementById('sensorStatus').textContent = 'Connected';
@@ -51,10 +48,8 @@ function initWebSocket() {
             console.log("Received data:", event.data);
             const data = JSON.parse(event.data);
             
-            // Log the actual data structure to better understand the format
             console.log("Parsed sensor data:", data);
             
-            // Handle various data formats
             if (data.orientation) {
                 sensorOrientation.alpha = data.orientation.alpha * (Math.PI / 180);
                 sensorOrientation.beta = data.orientation.beta * (Math.PI / 180);
@@ -64,14 +59,17 @@ function initWebSocket() {
                 sensorOrientation.beta = data.beta * (Math.PI / 180);
                 sensorOrientation.gamma = data.gamma * (Math.PI / 180);
             } else if (data.data) {
-                // Some apps nest data in a data property
                 const sensorData = data.data;
                 sensorOrientation.alpha = sensorData.alpha * (Math.PI / 180);
                 sensorOrientation.beta = sensorData.beta * (Math.PI / 180);
                 sensorOrientation.gamma = sensorData.gamma * (Math.PI / 180);
+            } if (data.values) {
+                const sensorData = data.data;
+                sensorOrientation.alpha = data.values[0] * (Math.PI / 180);
+                sensorOrientation.beta = data.values[1] * (Math.PI / 180);
+                sensorOrientation.gamma = data.values[2] * (Math.PI / 180);
             }
             
-            // Update the UI
             document.getElementById('alphaValue').textContent = 
                 (sensorOrientation.alpha * (180 / Math.PI)).toFixed(2) + "°";
             document.getElementById('betaValue').textContent = 
@@ -92,7 +90,6 @@ function initWebSocket() {
         document.getElementById('sensorStatus').textContent = 'Disconnected';
         document.getElementById('sensorStatus').style.color = '#ff9900';
         
-        // Try to reconnect after a delay
         setTimeout(initWebSocket, 3000);
     };
     
@@ -108,7 +105,6 @@ function CreateSurfaceData(data) {
     const zSegments = parseInt(document.getElementById('zSegments').value) || 32;
     const { vertices, indices } = generateKissSurface(uSegments, zSegments);
     
-    // Convert to appropriate typed arrays
     data.verticesF32 = new Float32Array(vertices);
     data.indicesU16 = new Uint16Array(indices);
 }
@@ -138,11 +134,6 @@ function CreateWebCamQuad(data) {
     data.verticesF32 = vertices;
     data.indicesU16 = indices;
     data.texCoordsF32 = texCoords;
-}
-
-// Helper function to normalize UV coordinates
-function normalizeUV(value, min, max) {
-    return (value - min) / (max - min);
 }
 
 function generateKissSurface(uSegments, zSegments, uRange = [0, 2 * Math.PI], zRange = [-1, 1]) {
@@ -258,14 +249,12 @@ function draw() {
     // Get the view matrix based on input method
     let modelView;
     
-    // In the draw function, add more detailed logging:
     if (isSensorEnabled) {
         console.log("Using sensor orientation:", 
             sensorOrientation.alpha.toFixed(2), 
             sensorOrientation.beta.toFixed(2), 
             sensorOrientation.gamma.toFixed(2));
             
-        // Use sensor orientation data to create the view matrix
         let orientationMatrix = createOrientationMatrix(
             sensorOrientation.alpha,
             sensorOrientation.beta,
@@ -508,7 +497,6 @@ function init() {
         let track = stream.getVideoTracks()[0];
         let settings = track.getSettings();
 
-        // Pass gl to CreateWebCamTexture
         iTextureWebCam = CreateWebCamTexture(gl, settings.width, settings.height);
 
         video.play();
@@ -517,7 +505,6 @@ function init() {
         console.log(err.name + ": " + err.message);
     });
 
-    // Set up event listeners for UI controls
     document.getElementById('eyeSeparation').addEventListener('input', updateStereoParameters);
     document.getElementById('fov').addEventListener('input', updateStereoParameters);
     document.getElementById('nearClipping').addEventListener('input', updateStereoParameters);
@@ -525,28 +512,22 @@ function init() {
     document.getElementById('uSegments').addEventListener('change', updateSurfaceSegments);
     document.getElementById('zSegments').addEventListener('change', updateSurfaceSegments);
     
-    // Set up event listener for sensor control toggle
     document.getElementById('sensorControlToggle').addEventListener('change', toggleSensorControl); 
 
-   // In main.js, add this in the init() function
 const testConnectionBtn = document.getElementById('testConnectionBtn');
 if (testConnectionBtn) {
     testConnectionBtn.addEventListener('click', function() {
         if (ws && ws.readyState === WebSocket.OPEN) {
             console.log("WebSocket connection is open");
-            // Additional debugging here
         } else {
             console.log("WebSocket connection is not open");
-            initWebSocket(); // Try to reconnect
+            initWebSocket();
         }
     });
 }
-    // Set up the trackball rotator
     spaceball = new TrackballRotator(canvas, draw, 0);
 
-    // Start animation loop
-    setInterval(draw, 50); // 20 fps
+    setInterval(draw, 50); 
 }
 
-// Call init when the page loads
 window.onload = init;
